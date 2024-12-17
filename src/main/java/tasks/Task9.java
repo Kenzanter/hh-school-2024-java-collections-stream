@@ -70,6 +70,7 @@ public class Task9 {
   // Посчитать число четных чисел
   public long countEven(Stream<Integer> numbers) {
     // Переменная count не нужна
+    // Если Stream будет параллельным, то операция count++ может давать неправильный результат
     return numbers
         .filter(number -> number % 2 == 0)
         .count();
