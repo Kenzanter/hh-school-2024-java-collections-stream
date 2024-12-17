@@ -24,8 +24,12 @@ public class Task6 {
 
     return persons.stream()
         .flatMap(person -> personAreaIds.get(person.id()).stream()
-            .map(regionId -> person.firstName() + " - " + areaMap.get(regionId).getName())
+            .map(regionId -> getPersonDiscription(person, areaMap.get(regionId)))
         )
         .collect(Collectors.toSet());
+  }
+
+  private static String getPersonDiscription(Person person, Area area){
+    return String.format("%s - %s", person.firstName(), area.getName());
   }
 }
