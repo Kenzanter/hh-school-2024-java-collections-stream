@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -26,64 +27,53 @@ public class Task9 {
   // Костыль, эластик всегда выдает в топе "фальшивую персону".
   // Конвертируем начиная со второй
   public List<String> getNames(List<Person> persons) {
-    if (persons.size() == 0) {
-      return Collections.emptyList();
-    }
-    persons.remove(0);
-    return persons.stream().map(Person::firstName).collect(Collectors.toList());
+    // Более наглядный код
+    // Не тратим время на удаление нулевого элемента из Листа
+    // List на входе может быть неизменяемым
+    return persons.stream()
+        .skip(1)
+        .map(Person::firstName)
+        .collect(Collectors.toList());
   }
 
   // Зачем-то нужны различные имена этих же персон (без учета фальшивой разумеется)
   public Set<String> getDifferentNames(List<Person> persons) {
-    return getNames(persons).stream().distinct().collect(Collectors.toSet());
+    // Set содержит уникальные элементы, distinct избыточен
+    // Заменяем stream на конструктор HashSet
+    return new HashSet<>(getNames(persons));
   }
 
   // Тут фронтовая логика, делаем за них работу - склеиваем ФИО
   public String convertPersonToString(Person person) {
-    String result = "";
-    if (person.secondName() != null) {
-      result += person.secondName();
-    }
-
-    if (person.firstName() != null) {
-      result += " " + person.firstName();
-    }
-
-    if (person.secondName() != null) {
-      result += " " + person.secondName();
-    }
-    return result;
+    // Опечатка, вместо middleName используется secondName
+    // Более наглядный код
+    return Stream.of(person.secondName(), person.firstName(), person.middleName())
+        .filter(Objects::nonNull)
+        .collect(Collectors.joining(" "));
   }
 
   // словарь id персоны -> ее имя
   public Map<Integer, String> getPersonNames(Collection<Person> persons) {
-    Map<Integer, String> map = new HashMap<>(1);
-    for (Person person : persons) {
-      if (!map.containsKey(person.id())) {
-        map.put(person.id(), convertPersonToString(person));
-      }
-    }
-    return map;
+    // Более наглядный код
+    // Т.к. в изначальном коде есть проверка на повторение person.id
+    // то используем toMap с мерджем, т.к в противном случае дубликат заменит собой первый вариант
+    return persons.stream()
+        .collect(Collectors.toMap(Person::id, this::convertPersonToString, (a,b) -> a));
   }
 
   // есть ли совпадающие в двух коллекциях персоны?
   public boolean hasSamePersons(Collection<Person> persons1, Collection<Person> persons2) {
-    boolean has = false;
-    for (Person person1 : persons1) {
-      for (Person person2 : persons2) {
-        if (person1.equals(person2)) {
-          has = true;
-        }
-      }
-    }
-    return has;
+    // Более наглядный код
+    return !Collections.disjoint(persons1, persons2);
   }
 
   // Посчитать число четных чисел
   public long countEven(Stream<Integer> numbers) {
-    count = 0;
-    numbers.filter(num -> num % 2 == 0).forEach(num -> count++);
-    return count;
+    // Переменная count не нужна
+    // Если Stream будет параллельным, то операция count++ может давать неправильный результат
+    return numbers
+        .filter(number -> number % 2 == 0)
+        .count();
   }
 
   // Загадка - объясните почему assert тут всегда верен
@@ -92,6 +82,18 @@ public class Task9 {
     List<Integer> integers = IntStream.rangeClosed(1, 10000).boxed().collect(Collectors.toList());
     List<Integer> snapshot = new ArrayList<>(integers);
     Collections.shuffle(integers);
+    // Хоть мы и перетасовали числа, но когда оборачиваем их в HashSet, то для данного набора чисел получается так,
+    // что они снова выстраиваются в отсортированном порядке.
+    // Объяснение кроется в работе хеш-таблицы. Элементы в хеш-таблице хранятся в бакетах.
+    // В какой бакет попадет элемент рассчитывается как остаток от деления хеш-функции элемента на емкость хеш-таблицы.
+    // Для целого числа хеш-функция равна этому числу. Получается что число 1 попадет в первый бакете, число 2 во второй,
+    // число 10000 в бакет с индексом 10000.
+    // В нашем случае, независимо от того как числа были перемешаны, в хеш-таблице каждое число попадает
+    // в отдельный бакет и окажется в отсортированном порядке.
+    // Когда мы проводим сравнение, HashSet сперва выдает элемент из первого бакета - число 1, потом из второго - число 2
+    // и так далее. Получается отсортированный вывод.
+    // В итоге, для нашего случая, получается что мы сравниваем два одинаковых отсортированных набора чисел.
+
     Set<Integer> set = new HashSet<>(integers);
     assert snapshot.toString().equals(set.toString());
   }
